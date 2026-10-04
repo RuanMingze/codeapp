@@ -24,11 +24,14 @@ jobs:
         with:
           xcode-version: latest-stable
 
+      - name: List available schemes (debug)
+        run: xcodebuild -list -project Code.xcodeproj
+
       - name: Build iphoneos app bundle
         run: |
           xcodebuild build \
             -project Code.xcodeproj \
-            -scheme CodeUI \
+            -scheme Code \
             -sdk iphoneos \
             -configuration Release \
             -derivedDataPath ./DerivedData \
@@ -40,6 +43,7 @@ jobs:
         run: |
           APP_BUNDLE=$(find ./DerivedData -path "*Release-iphoneos*" -name "*.app" | head -n1)
           echo "Found iOS app bundle: $APP_BUNDLE"
+          lipo -info "$APP_BUNDLE"/Code
           mkdir -p Payload
           cp -R "$APP_BUNDLE" Payload/
           zip -qr CodeApp.ipa Payload
