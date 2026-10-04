@@ -1,4 +1,4 @@
-name: Build CodeApp Unsigned IPA
+name: Build CodeApp NoPlist IPA
 on:
   workflow_dispatch:
   push:
@@ -24,41 +24,29 @@ jobs:
         with:
           xcode-version: latest-stable
 
-      - name: Archive (unsigned)
+      - name: Build iphoneos app bundle
         run: |
-          xcodebuild archive \
+          xcodebuild build \
             -project Code.xcodeproj \
             -scheme CodeUI \
             -sdk iphoneos \
             -configuration Release \
-            -archivePath ./CodeApp.xcarchive \
+            -derivedDataPath ./DerivedData \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO
 
-      - name: Export unsigned IPA
+      - name: Package into IPA (find iOS .app automatically)
         run: |
-          cat > ExportOptions.plist <<EOF
-  <?xml version="1.0" encoding="UTF-8"?>
-  <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-  <plist version="1.0">
-  <dict>
-    <key>method</key>
-    <string>development</string>
-    <key>signingStyle</key>
-    <string>manual</string>
-    <key>provisioningProfiles</key>
-    <dict/>
-  </dict>
-  </plist>
-  EOF
-          xcodebuild -exportArchive \
-            -archivePath ./CodeApp.xcarchive \
-            -exportPath ./Output \
-            -exportOptionsPlist ExportOptions.plist \
-            CODE_SIGNING_ALLOWED=NO
+          APP_BUNDLE=$(find ./DerivedData -path "*Release-iphoneos*" -name "*.app" | head -n1)
+          echo "Found iOS app bundle: $APP_BUNDLE"
+          mkdir -p Payload
+          cp -R "$APP_BUNDLE" Payload/
+          zip -qr CodeApp.ipa Payload
+          mkdir -p Output
+          mv CodeApp.ipa Output/
 
-      - name: Upload IPA
+      - name: Upload unsigned IPA
         uses: actions/upload-artifact@v4
         with:
           name: CodeApp-unsigned-ipa
