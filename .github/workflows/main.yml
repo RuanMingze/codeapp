@@ -27,22 +27,21 @@ jobs:
       - name: List all targets (debug)
         run: xcodebuild -list -project Code.xcodeproj
 
-      - name: Build iOS target CodeUI (generic iOS device)
+      - name: Build iOS target CodeUI
         run: |
           xcodebuild build \
             -project Code.xcodeproj \
             -target CodeUI \
             -destination "generic/platform=iOS" \
             -configuration Release \
-            -derivedDataPath ./DerivedData \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO
 
       - name: Package to IPA
         run: |
-          APP_BUNDLE=$(find ./DerivedData -path "*Release-iphoneos*" -name "*.app" | head -n1)
-          echo "App path: $APP_BUNDLE"
+          APP_BUNDLE=$(find . -path "*Release-iphoneos*" -name "*.app" | head -n1)
+          echo "Found iOS App Bundle: $APP_BUNDLE"
           lipo -info "$APP_BUNDLE"/CodeUI
           mkdir -p Payload
           cp -R "$APP_BUNDLE" Payload/
