@@ -1,33 +1,50 @@
-name: Build CodeApp Unsigned IPA
+name: Build Unsigned IPA
 on:
   workflow_dispatch:
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: macOS-26
-    timeout-minutes: 60
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
       - name: Select Xcode 26.2
         run: sudo xcode-select -s /Applications/Xcode_26.2.app
 
-      - name: Generate placeholder Secrets.swift
+      - name: Clean SPM cache
+        run: |
+          rm -rf ~/Library/Developer/Xcode/DerivedData/*
+          rm -rf ~/Library/Caches/org.swift.swiftpm
+          rm -rf ~/Library/org.swift.swiftpm
+
+      - name: Create placeholder Secrets.swift
         run: |
           mkdir -p CodeApp/Constants
-          echo 'let JUDGE0_ENDPOINT = ""' > CodeApp/Constants/Secrets.swift
-          echo 'let JUDGE0_KEY = ""' >> CodeApp/Constants/Secrets.swift
+          cat > CodeApp/Constants/Secrets.swift <<'EOF'
+          let JUDGE0_ENDPOINT = ""
+          let JUDGE0_KEY = ""
+          EOF
 
       - name: Download prebuilt frameworks
         run: |
           chmod +x downloadFrameworks.sh
           ./downloadFrameworks.sh
 
-      - name: Verify schemes
-        run: xcodebuild -list -project Code.xcodeproj
+      - name: Resolve SPM dependencies
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project Code.xcodeproj \
+            -scheme "Code App"
+
+      - name: Verify resolved packages
+        run: |
+          find ~/Library/Developer/Xcode/DerivedData -path "*SourcePackages/checkouts" -maxdepth 5 -type d | head -20
 
       - name: Build iOS (unsigned)
         run: |
