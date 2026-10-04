@@ -24,26 +24,26 @@ jobs:
         with:
           xcode-version: latest-stable
 
-      - name: List available schemes (debug)
+      - name: List all targets (debug)
         run: xcodebuild -list -project Code.xcodeproj
 
-      - name: Build iphoneos app bundle
+      - name: Build iOS target CodeUI (generic iOS device)
         run: |
           xcodebuild build \
             -project Code.xcodeproj \
-            -scheme Code \
-            -sdk iphoneos \
+            -target CodeUI \
+            -destination "generic/platform=iOS" \
             -configuration Release \
             -derivedDataPath ./DerivedData \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO
 
-      - name: Package into IPA (find iOS .app automatically)
+      - name: Package to IPA
         run: |
           APP_BUNDLE=$(find ./DerivedData -path "*Release-iphoneos*" -name "*.app" | head -n1)
-          echo "Found iOS app bundle: $APP_BUNDLE"
-          lipo -info "$APP_BUNDLE"/Code
+          echo "App path: $APP_BUNDLE"
+          lipo -info "$APP_BUNDLE"/CodeUI
           mkdir -p Payload
           cp -R "$APP_BUNDLE" Payload/
           zip -qr CodeApp.ipa Payload
